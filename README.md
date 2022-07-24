@@ -14,11 +14,13 @@ O projeto foi desenvolvido em três módulos, sendo eles:
 
 - [Web](web-app)
 
+## Esquemático
+!["Esquemático"](https://user-images.githubusercontent.com/30627500/180654326-2998fd86-e6ff-4b1c-9292-8943103afc4f.jpeg "Esquemático")
 
 ## Autores
 
 - [Gabriel Alcântara](https://github.com/gabrielrfonseca)
-- [Lucas Barros]()
+- [Lucas Barros](https://github.com/BarrosLucas)
 - [Epitácio Neto]()
 - [Zi Silva]()
 - [Joan Vitor]()
