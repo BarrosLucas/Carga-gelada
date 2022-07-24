@@ -27,6 +27,8 @@ char wspeed[12];
 char phone[16] = "083987915646";
 char datetime[24];
 
+unsigned long timer;
+
 SoftwareSerial mySerial(PIN_TX,PIN_RX);
 DFRobot_SIM808 sim808(&mySerial);//Connect RX,TX,PWR,
 
@@ -64,7 +66,7 @@ void loop(){
   Serial.print("A temperatura é: ");
   Serial.print(tempC);
   Serial.print("\n");
-  delay(5000);
+  delay(1000);
 }
 
 
@@ -112,7 +114,12 @@ void sendSMS(float tempC){
     sim808.sendSMS(phone,ssid_array);
     Serial.println("Mensagem enviada: ");
     Serial.println(ssid_array);
+    timer = millis();
     enviado = true;
+  }else{
+    if(millis() > (timer + 5000)){
+      enviado = false;
+    }
   }
 }
 
@@ -136,10 +143,13 @@ void getGPS(){
     }
   }
 
-  float la = sim808.GPSdata.lat;
-  float lo = sim808.GPSdata.lon;
+  float la = sim808.GPSdata.lat * -1; //Movendo ao quadrante geográfico da América Latina
+  float lo = sim808.GPSdata.lon * -1; //Movendo ao quadrante geográfico da América Latina
   float ws = sim808.GPSdata.speed_kph;
 
+  Serial.println(la);
+  Serial.println(lo);
+  
   dtostrf(la, 4, 6, lat);
   dtostrf(lo, 4, 6, lon);
   dtostrf(ws, 6, 2, wspeed);
