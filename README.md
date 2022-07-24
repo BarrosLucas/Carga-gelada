@@ -14,6 +14,9 @@ O projeto foi desenvolvido em três módulos, sendo eles:
 
 - [Web](web-app)
 
+## Esquemático
+![WhatsApp Image 2022-07-24 at 12 34 22](https://user-images.githubusercontent.com/30627500/180654921-8e21c545-6973-4bea-bdc2-61f496e51ee1.jpeg)
+
 ## Protobard
 !["Protoboard"](https://user-images.githubusercontent.com/30627500/180654326-2998fd86-e6ff-4b1c-9292-8943103afc4f.jpeg "Protoboard project")
 
@@ -21,7 +24,7 @@ O projeto foi desenvolvido em três módulos, sendo eles:
 
 - [Gabriel Alcântara](https://github.com/gabrielrfonseca)
 - [Lucas Barros](https://github.com/BarrosLucas)
-- [Epitácio Neto]()
-- [Zi Silva]()
-- [Joan Vitor]()
-- [Mateus Fonseca]()
+- [Epitácio Neto](https://github.com/epitacioneto)
+- [Zi Silva](https://github.com/invaderZi)
+- [Joan Vitor](https://github.com/Jovi-DM)
+- [Mateus Fonseca](https://github.com/mateusfh)
