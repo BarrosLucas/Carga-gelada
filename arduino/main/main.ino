@@ -142,13 +142,11 @@ void getGPS(){
       cont = 0;
     }
   }
+  Serial.print("\n");
 
   float la = sim808.GPSdata.lat * -1; //Movendo ao quadrante geográfico da América Latina
   float lo = sim808.GPSdata.lon * -1; //Movendo ao quadrante geográfico da América Latina
   float ws = sim808.GPSdata.speed_kph;
-
-  Serial.println(la);
-  Serial.println(lo);
   
   dtostrf(la, 4, 6, lat);
   dtostrf(lo, 4, 6, lon);
