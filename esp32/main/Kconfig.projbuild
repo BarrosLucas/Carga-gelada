@@ -1,0 +1,38 @@
+menu "SD SPI Example Configuration"
+
+    config EXAMPLE_FORMAT_IF_MOUNT_FAILED
+        bool "Format the card if mount failed"
+        default n
+        help
+            If this config item is set, format_if_mount_failed will be set to true and the card will be formatted if
+            the mount has failed.
+
+    config EXAMPLE_PIN_MOSI
+        int "MOSI GPIO number"
+        default 23 if IDF_TARGET_ESP32
+        default 23 if IDF_TARGET_ESP32S2
+        default 23 if IDF_TARGET_ESP32S3
+        default 23  # C3 and others
+
+    config EXAMPLE_PIN_MISO
+        int "MISO GPIO number"
+        default 19 if IDF_TARGET_ESP32
+        default 19 if IDF_TARGET_ESP32S2
+        default 19 if IDF_TARGET_ESP32S3
+        default 19  # C3 and others
+
+    config EXAMPLE_PIN_CLK
+        int "CLK GPIO number"
+        default 18 if IDF_TARGET_ESP32
+        default 18 if IDF_TARGET_ESP32S2
+        default 18 if IDF_TARGET_ESP32S3
+        default 18  # C3 and others
+
+    config EXAMPLE_PIN_CS
+        int "CS GPIO number"
+        default 2 if IDF_TARGET_ESP32
+        default 2 if IDF_TARGET_ESP32S2
+        default 2 if IDF_TARGET_ESP32S3
+        default 2  # C3 and others
+
+endmenu
