@@ -1,5 +1,10 @@
 # Carga Gelada
 
+Dashboard completo para acompanhamento das medições em https://carga-gelada-vue.vercel.app/ 
+
+![Dashboard](https://user-images.githubusercontent.com/40426593/180852466-5a24147d-bc91-4501-a7e6-a1cf4bd966bd.png)
+
+
 O projeto "Carga gelada" foi desenvolvido para a turma de Microcontroladores - UFPB. Ele consiste em um monitorador de temperatura, com o próposito de ser utilizados em caminhões baú que fazem o transporte de frutas. 
 
 Desse modo, será possível acompanhar a temperatura no frigorífico de modo a atestar que durante todo o transporte realizado pelo caminhoneiro foi seguido as recomendações do seu contratante. 
