@@ -15,6 +15,7 @@ public:
 	void setHour(int* h, int* m, int *s, int* y, int* mo, int* d);
 	void postOnEndpoint(String object, String host);
   bool initSIM();
+  virtual ~ConnectionSIM();
 
 private: 
   SoftwareSerial *mySerial;

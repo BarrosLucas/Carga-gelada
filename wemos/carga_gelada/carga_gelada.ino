@@ -1,9 +1,9 @@
 #include <OneWire.h>  
 #include <DallasTemperature.h>
-#include <SPI.h>
 #include "ConnectionNetwork.h"
 #include "connectionSIM.h"
-#include <SD.h>
+#include "SDCard.h"
+
 
 const int chipSelect = D8;
 
@@ -29,38 +29,16 @@ OneWire oneWire(data);
 DallasTemperature sensors(&oneWire);
 
 ConnectionNetwork connectionNetwork;
+SDCard sdCard;
 ConnectionSIM *connectionSIM;
 
 void setup(){   
   Serial.begin(9600);
-  
-  Serial.println("*****Setting SDCard******");
-  
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
- 
-  Serial.print("\nInitializing SD card...");
- 
-  // we'll use the initialization code from the utility libraries
-  // since we're just testing if the card is working!
-  if (!SD.begin(SS)) {
-    Serial.println("initialization failed. Things to check:");
-    Serial.println("* is a card inserted?");
-    Serial.println("* is your wiring correct?");
-    Serial.println("* did you change the chipSelect pin to match your shield or module?");
-    while (1);
-  } else {
-    Serial.println("Wiring is correct and a card is present.");
-  }
 
-  pinMode(SS, OUTPUT); //DEFINE O PINO COMO SAÍDA
-
-  Serial.println("SDCard File Content - LOG.TXT");
+  Serial.println("*****SDCard init*****");
+  sdCard = SDCard();
+  sdCard.initCard();
   
-  File dataFile = SD.open(nameFile); //dataFile RECEBE O CONTEÚDO DO ARQUIVO DE TEXTO (ABRIR UM ARQUIVO POR VEZ)
-  readFile(dataFile);
-
   Serial.println("\n\n*****Setting WiFi*****");
   connectionNetwork = ConnectionNetwork();
   connectionNetwork.networkConnect(ssid, pass);
@@ -101,33 +79,13 @@ void sendData(float tempC){
       connectionSIM->postOnEndpoint(json,hostWithPort);
     }
   }
-
   saveData(json);
-  //Tenta enviar via WiFi
-  //Se não conseguir, tenta via SMS
-
-  //Salva no SDCard
 }
 
 void saveData(String msg){
-
   Serial.println("Saving warning on SDCard");
-  while(!writeFile(msg)){}
+  while(!sdCard.writeFile(msg, nameFile)){};
   Serial.println("Warning saved!");
-  Serial.println(msg);
-  
-}
-
-void readFile(File dataFile){ 
-  if(dataFile){ //SE EXISTIREM DADOS A SEREM LIDOS, FAZ
-    while(dataFile.available()){ //ENQUANTO HOUVER CONTEÚDO A SER LIDO, FAZ
-      Serial.write(dataFile.read()); //ESCREVE NA SERIAL AS INFORMAÇÕES DO ARQUIVO DE TEXTO
-    }
-    dataFile.close(); //ENCERRA A LEITURA (SEMPRE FECHAR O ARQUIVO ATUAL PARA ABRIR UM OUTRO ARQUIVO)
-  }
-  else{ //SENÃO, FAZ
-    Serial.println("Erro ao abrir o arquivo!"); //IMPRIME O TEXTO NO MONITOR SERIAL
-  }
 }
 
 String generateJSON(float tempC){
@@ -199,16 +157,4 @@ String generateJSON(float tempC){
   json.concat("}");
 
   return json;
-}
-
-boolean writeFile(String content){
-  //Abre o arquivo datalog.txt
-  File dataFile = SD.open(nameFile, FILE_WRITE);
-  //Grava as informacoes no arquivo
-  if (dataFile){
-    dataFile.println(content);
-    dataFile.close();
-    return true;
-  }
-  return false;
 }

@@ -307,3 +307,5 @@ int ConnectionSIM::isLeap(int y){
         return 0;
     }
 }
+
+ConnectionSIM::~ConnectionSIM() {}
