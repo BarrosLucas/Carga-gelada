@@ -13,9 +13,6 @@
 #define NOVEMBER	11
 #define DECEMBER	12
 
-SoftwareSerial mySerial;
-DFRobot_SIM808 sim808;
-
 enum _parseState {
   PS_DETECT_MSG_TYPE,
 
@@ -35,58 +32,56 @@ unsigned long lastActionTime = 0;
 
 int contentLength = 0;
 
-ConnectionSIM::ConnectionSIM(const int PIN_TX, const int PIN_RX, const int dados){
-	mySerial 	= mySerial(PIN_TX,PIN_RX);
-	sim808		= sim808(&mySerial);
-	mySerial.begin(9600);
-	initSIM();
+ConnectionSIM::ConnectionSIM(const int PIN_TX, const int PIN_RX){
+	mySerial 	= new SoftwareSerial(PIN_TX,PIN_RX);
+	sim808		= new DFRobot_SIM808(mySerial);
+	mySerial->begin(9600);
 }
 
-void ConnectionSIM::initSIM(){
+bool ConnectionSIM::initSIM(){
 	Serial.println("Waiting SIM Signal...");
 	long time_init = millis();
 	int init;
-	while((init = sim808.init())!=1 && ((millis() - time_init) <  60000)){
-  	}
-  	if(init){
-		Serial.println("Signal OK!");
-	}else{
-		Serial.println("Failed Signal");
-	}
+	while((init = sim808->init())!=1 && ((millis() - time_init) <  60000)){}
+  if(init){
+		 Serial.println("Signal OK!");
+     return true;
+  }
+	Serial.println("Failed Signal");
+  return false;
 }
 
 void ConnectionSIM::getGPS(float* lt, float* lg, float* ws){
 	Serial.println("Waiting GPS...");
-	while(!sim808.attachGPS()){
+	while(!sim808->attachGPS()){
 		delay(1000);
 	}
 	Serial.println("GPS connected!");
 	Serial.println("Waiting coordinates coordinates");
-	while(!sim808.getGPS()){
-		
-	}
-	*lt = sim808.GPSdata.lat * -1;
-	*lg = sim808.GPSdata.lon * -1;
-	*ws = sim808.GPSdata.speed_kph;
+	while(!sim808->getGPS()){}
+  Serial.println("Coordinates obtain success!");
+	*lt = sim808->GPSdata.lat * -1;
+	*lg = sim808->GPSdata.lon * -1;
+	*ws = sim808->GPSdata.speed_kph;
 	
 	return;
 }
 
 void ConnectionSIM::getTimestamp(int* day, int* month, int* year, int* hour, int* minute, int* second){
-	*day = sim808.GPSdata.day;
-    *month = sim808.GPSdata.month;
-    *year = sim808.GPSdata.year;
-    *hour = sim808.GPSdata.hour;
-    *minute = sim808.GPSdata.minute;
-    *second = sim808.GPSdata.second;
+	  *day = sim808->GPSdata.day;
+    *month = sim808->GPSdata.month;
+    *year = sim808->GPSdata.year;
+    *hour = sim808->GPSdata.hour;
+    *minute = sim808->GPSdata.minute;
+    *second = sim808->GPSdata.second;
 
-    setHour(&hour, &minute, &second, &year, &month, &day);
+    setHour(hour, minute, second, year, month, day);
 }
 
-bool ConnectionSIM::sendSMS(const char* message, const char* phone){
+bool ConnectionSIM::sendSMS(char* message, char* phone){
 	long time_init = millis();
 	int sent;
-	while((sent = sim808.sendSMS(phone,message))!=1 && ((millis() - time_init) < 10000)){}
+	while((sent = sim808->sendSMS(phone,message))!=1 && ((millis() - time_init) < 10000)){}
 	if(sent){
 		return true;
 	}
@@ -136,9 +131,9 @@ void ConnectionSIM::setHour(int* h, int* m, int *s, int* y, int* mo, int* d){
 }
 
 void ConnectionSIM::sendsim808(const char* msg, int waitMs = 500) {
-  mySerial.println(msg);
-  while(mySerial.available()) {
-    parseATText(mySerial.read());
+  mySerial->println(msg);
+  while(mySerial->available()) {
+    parseATText(mySerial->read());
   }
   delay(waitMs);
 }
@@ -215,8 +210,8 @@ void ConnectionSIM::parseATText(byte b) {
         Serial.println(buffer);
         
         // now request content
-        mySerial.print("AT+HTTPREAD=0,");
-        mySerial.println(buffer);
+        mySerial->print("AT+HTTPREAD=0,");
+        mySerial->println(buffer);
         
         parseState = PS_DETECT_MSG_TYPE;
         resetBuffer();
@@ -266,9 +261,9 @@ void ConnectionSIM::resetBuffer() {
   pos = 0;
 }
 
-void ConnectionSIM::postOnEndpoint(JsonObject object, String host){
+void ConnectionSIM::postOnEndpoint(String object, String host){
   sendsim808("AT");
-  sendsim808("AT+SAPBR=3,1,\"Contype\",\"GPRS\"")
+  sendsim808("AT+SAPBR=3,1,\"Contype\",\"GPRS\"");
   sendsim808("AT+SAPBR=3,1,\"APN\",\"airtelgprs.com\"");  
   sendsim808("AT+SAPBR=1,1",3000);
   sendsim808("AT+SAPBR=2,1");
@@ -279,13 +274,20 @@ void ConnectionSIM::postOnEndpoint(JsonObject object, String host){
   sendsim808(urlChar);
   //=0 get post=1
   sendsim808("AT+HTTPPARA=\"CONTENT\",\"application/json\"");
-  sendsim808("AT+HTTPDATA=" + String(sendtoserver.length()) + ",100000",6000);
-  sendsim808(sendtoserver);
+
+  String variable = "AT+HTTPDATA=";
+  variable.concat(object.length());
+  variable.concat(",100000");
+  
+  
+  //sendsim808("AT+HTTPDATA=" + String(object.length()).c_str() + ",100000",6000);
+  sendsim808(variable.c_str(),6000);
+  sendsim808(object.c_str());
   sendsim808("AT+HTTPACTION=1");
   sendsim808("AT+HTTPREAD");
   sendsim808("AT+HTTPTERM",3000);
   delay(5000);
-  mySerial.flush();
+  mySerial->flush();
 }
 
 
@@ -304,7 +306,4 @@ int ConnectionSIM::isLeap(int y){
     }else{
         return 0;
     }
-}
-
-ConnectionNetwork::~ConnectionNetwork() {
 }

@@ -15,15 +15,15 @@ ConnectionNetwork::ConnectionNetwork(){
 
 /*
 PUBLIC 
-CONECTA O ARDUINO À REDE WIFI DISPONIVEL
+CONECTA O ARDUINO ï¿½ REDE WIFI DISPONIVEL
 PARAMETROS:
 const char* ssid       -> nome da rede
 const char* password   -> senha da rede
 */
 void ConnectionNetwork::networkConnect(const char* ssid, const char* password){
-  WiFi.mode(WIFI_STA); 							//TIPO DE CONEXÃO
-  WiFi.begin(ssid, password); 					//INICIA A CONEXÃO POR WIFI
-  while (WiFi.status() != WL_CONNECTED) {		//EXECUTA ATÉ QUE A CONEXAO SEJA ESTABELECIDA
+  WiFi.mode(WIFI_STA); 							//TIPO DE CONEXï¿½O
+  WiFi.begin(ssid, password); 					//INICIA A CONEXï¿½O POR WIFI
+  while (WiFi.status() != WL_CONNECTED) {		//EXECUTA ATï¿½ QUE A CONEXAO SEJA ESTABELECIDA
     delay(500);
   }
 }
@@ -34,37 +34,35 @@ PUBLIC
 CONECTA O ARDUINO A UM HOST
 PARAMETROS:
 const char* host    -> IP onde se conecta
-const int port      -> Porta de conexão
-void (*onConnect)   -> Callback que é executado ao ser estabelecida a conexão
+const int port      -> Porta de conexï¿½o
+void (*onConnect)   -> Callback que ï¿½ executado ao ser estabelecida a conexï¿½o
 */
-bool ConnectionNetwork::establishConnection(const char* host, const int port, void (*onConnect)()){
-  if (!client.connect(host, port)) {			//CASO NÃO CONSIGA CONECTAR...
+bool ConnectionNetwork::establishConnection(const char* host, const int port){
+  if (!client.connect(host, port)) {			//CASO Nï¿½O CONSIGA CONECTAR...
     Serial.println("connection failed");
-    delay(5000);
     return false;
   }
-  (*onConnect)();								//QUANDO CONECTAR...
   return true;
 }
 
 
 /*
 PUBLIC
-CHAMA UM MÉTODO QUANDO RECEBER UM DADO
+CHAMA UM Mï¿½TODO QUANDO RECEBER UM DADO
 PARAMETRO:
-void (*onData)    -> Funçãoo a ser executada
+void (*onData)    -> Funï¿½ï¿½oo a ser executada
 */
 void ConnectionNetwork::onDataCallback(void (*onData)(String data)){
   this->onData = onData;
   thread = new Thread();				//CRIA UMA THREAD
-  thread->setInterval(1000);				//DEFINE QUE SERÁ EXECUTADA A CADA 100 MS
-  thread->onRun(readingData); 			//QUANDO EXECUTAR, CHAMAR A FUNÇÃO...
+  thread->setInterval(1000);				//DEFINE QUE SERï¿½ EXECUTADA A CADA 100 MS
+  thread->onRun(readingData); 			//QUANDO EXECUTAR, CHAMAR A FUNï¿½ï¿½O...
   readingDataReceived(this->onData);	//INICIA UMA THREAD
 }
 
 /*
 PUBLIC
-FECHA A CONEXÃO 
+FECHA A CONEXï¿½O 
 */
 void ConnectionNetwork::closeConnection(){
 	client.stop();
@@ -72,13 +70,15 @@ void ConnectionNetwork::closeConnection(){
 
 /*
 PUBLIC
-ENVIA OS DADOS PARA O HOST NO QUAL ESTÁ CONECTADO
+ENVIA OS DADOS PARA O HOST NO QUAL ESTï¿½ CONECTADO
 PARAMETRO:
 const void *data    -> Recebe o array de bytes
 int size			-> Recebe o tamanho
 */
-bool ConnectionNetwork::sendData(const void *data, int size){
-	const char *p = (const char*) data;
+bool ConnectionNetwork::sendData(char *data){
+  unsigned char* output;
+  int size = string2ByteArray(data, output);
+  const char* p = (const char*) output;
 	if(client.connected()){
 		while (size--) {
 			client.write(p);
@@ -92,11 +92,11 @@ bool ConnectionNetwork::sendData(const void *data, int size){
 
 /*
 PRIVATE
-É CHAMADO PELO OnDataCallback PARA EXECUTAR A THREAD DE LEITURA
-DA CONEXÃO, VERIFICANDO SE POSSUI ALGUM DADO A SER LIDO...
-É, BASICAMETNE, UMA THREAD QUE EXECUTA OUTRA THREAD
+ï¿½ CHAMADO PELO OnDataCallback PARA EXECUTAR A THREAD DE LEITURA
+DA CONEXï¿½O, VERIFICANDO SE POSSUI ALGUM DADO A SER LIDO...
+ï¿½, BASICAMETNE, UMA THREAD QUE EXECUTA OUTRA THREAD
 PARAMETRO:
-void (*onData)()    -> Função que é executada quando recebe algum dado
+void (*onData)()    -> Funï¿½ï¿½o que ï¿½ executada quando recebe algum dado
 */
 void ConnectionNetwork::readingDataReceived(void (*onData)(String data)){
 	String data = "";
@@ -128,7 +128,7 @@ void ConnectionNetwork::readingDataReceived(void (*onData)(String data)){
 /*
 PRIVATE
 FAZ A LEITURA
-NÃO NECESSITA DE PARAMETRO PARA SER LIDO
+Nï¿½O NECESSITA DE PARAMETRO PARA SER LIDO
 */
 String ConnectionNetwork::readingData(){
   String data = "";
@@ -138,6 +138,30 @@ String ConnectionNetwork::readingData(){
   }
   return data;
 }
+
+/*
+PRIVATE
+FAZ A CONVERSÃƒO DE UMA STRING PARA
+UM ARRAY DE BYTE
+
+PARAMETROS:
+char* input -> array de char
+byte* output -> array de byte
+*/
+int ConnectionNetwork::string2ByteArray(char* input, unsigned char* output){
+    int loop;
+    int i;
+    
+    loop = 0;
+    i = 0;
+    
+    while(input[loop] != '\0')
+    {
+        output[i++] = input[loop++];
+    }
+    return i;
+}
+
 
 ConnectionNetwork::~ConnectionNetwork() {
 	// TODO Auto-generated destructor stub

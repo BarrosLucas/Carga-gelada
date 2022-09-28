@@ -1,53 +1,37 @@
 #include <OneWire.h>  
 #include <DallasTemperature.h>
-#include <DFRobot_SIM808.h>
-#include <SoftwareSerial.h>
 #include <SPI.h>
+#include "ConnectionNetwork.h"
+#include "connectionSIM.h"
 #include <SD.h>
- 
+
 const int chipSelect = D8;
 
 #define PIN_TX D4
 #define PIN_RX D3
-#define dados D2
 
-#define JANEIRO 1
-#define FEVEREIRO 2
-#define MARCO 3
-#define ABRIL 4 
-#define MAIO 5
-#define JUNHO 6 
-#define JULHO 7 
-#define AGOSTO 8
-#define SETEMBRO 9
-#define OUTUBRO 10
-#define NOVEMBRO 11
-#define DEZEMBRO 12
+#define data D2
 
-char lat[12];
-char lon[12];
-char wspeed[12];
-
-//char phone[16] = "082999829071";
 char phone[16] = "043999214040";
-char datetime[24];
 char nameFile[9] = "LOG.TXT";
+
+char* ssid = "brisa-941446";
+char* pass = "vgudfwye";
+
+char* host = "http://www.google.com.br";
+int port = 80;
+
+char* hostWithPort = "http://www.google.com.br/80";
 
 unsigned long timer;
 
-SoftwareSerial mySerial(PIN_TX,PIN_RX);
-DFRobot_SIM808 sim808(&mySerial);//Connect RX,TX,PWR,
-
-void sendSMS(float tempC);
-boolean writeFile(String content);
-OneWire oneWire(dados);  
+OneWire oneWire(data);  
 DallasTemperature sensors(&oneWire);
-void readFile(File dataFile);
 
-boolean enviado = false;
+ConnectionNetwork connectionNetwork;
+ConnectionSIM *connectionSIM;
 
 void setup(){   
-  mySerial.begin(9600);
   Serial.begin(9600);
   
   Serial.println("*****Setting SDCard******");
@@ -69,9 +53,6 @@ void setup(){
   } else {
     Serial.println("Wiring is correct and a card is present.");
   }
-  
-  /*File dir =  SD.open("/");
-  printDirectory(dir, 0);*/
 
   pinMode(SS, OUTPUT); //DEFINE O PINO COMO SAÍDA
 
@@ -80,220 +61,61 @@ void setup(){
   File dataFile = SD.open(nameFile); //dataFile RECEBE O CONTEÚDO DO ARQUIVO DE TEXTO (ABRIR UM ARQUIVO POR VEZ)
   readFile(dataFile);
 
-  Serial.println("\n\n*****Setting SIM Card******");
-  while(!sim808.init()){
-      Serial.print("Aguardando sinal\r\n");
-      delay(1000);
-  }
-  delay(3000);
+  Serial.println("\n\n*****Setting WiFi*****");
+  connectionNetwork = ConnectionNetwork();
+  connectionNetwork.networkConnect(ssid, pass);
 
-  Serial.println("SIM Init success");
-  Serial.begin(9600);
+  Serial.println("\n\n*****Setting SIM Card******");
+  connectionSIM = new ConnectionSIM(PIN_TX, PIN_RX);
+  
   sensors.begin(); 
 } 
 void loop(){ 
   sensors.requestTemperatures();
   float tempC = sensors.getTempCByIndex(0);
-  
-  if(tempC > 22){
-    Serial.print("Temperatura elevada: ");
-    Serial.print(tempC);
-    Serial.println("°C");
-    sendSMS(tempC);
-    saveData(tempC);
-  }else{
-    enviado = false;
-  }
-  
+
   Serial.print("A temperatura é: ");
   Serial.print(tempC);
-  Serial.print("\n");
+  Serial.println("°C");
+  sendData(tempC);
+  
   delay(1000);
 }
 
-void saveData(float tempC){
-  int day, month, year, hour, minute, second;
-  
-  getGPS();
-    
-  day = sim808.GPSdata.day;
-  month = sim808.GPSdata.month;
-  year = sim808.GPSdata.year;
-  hour = sim808.GPSdata.hour;
-  minute = sim808.GPSdata.minute;
-  second = sim808.GPSdata.second;
 
-  setHour(&hour, &minute, &second, &year, &month, &day);
-    
-  String msg = "";
-  msg.concat(day);
-  msg.concat("/");
-  msg.concat(month);
-  msg.concat("/");
-  msg.concat(year);
-  msg.concat(" ");
-  msg.concat(hour);
-  msg.concat(":");
-  msg.concat(minute);
-  msg.concat(":");
-  msg.concat(second);
-  msg.concat("\n");
-  msg.concat("A carga esta a uma temperatura elevada: ");
-  msg.concat(tempC);
-  msg.concat("\nCoordenadas:\n");
-  msg.concat("Latitude: ");
-  msg.concat(lat);
-  msg.concat("\nLongitude: ");
-  msg.concat(lon);
+void sendData(float tempC){
+  char msg[500]; 
+  String json = generateJSON(tempC);
+  json.toCharArray(msg, 500);
+
+  boolean dataSent = false;
+  if(connectionNetwork.establishConnection(host, port)){
+    if(connectionNetwork.sendData(msg)){
+      dataSent = true;
+      Serial.println("Send data by WiFi connection!");
+    }
+  }
+  if(!dataSent){
+    Serial.println("Not was possible send data by WiFi connection...\nTrying send data by GPRS connection");
+    if(connectionSIM->initSIM()){
+      connectionSIM->postOnEndpoint(json,hostWithPort);
+    }
+  }
+
+  saveData(json);
+  //Tenta enviar via WiFi
+  //Se não conseguir, tenta via SMS
+
+  //Salva no SDCard
+}
+
+void saveData(String msg){
 
   Serial.println("Saving warning on SDCard");
   while(!writeFile(msg)){}
   Serial.println("Warning saved!");
   Serial.println(msg);
   
-}
-
-void sendSMS(float tempC){
-  int day, month, year, hour, minute, second;
-  if(enviado == false){
-    getGPS();
-    
-    day = sim808.GPSdata.day;
-    month = sim808.GPSdata.month;
-    year = sim808.GPSdata.year;
-    hour = sim808.GPSdata.hour;
-    minute = sim808.GPSdata.minute;
-    second = sim808.GPSdata.second;
-
-    setHour(&hour, &minute, &second, &year, &month, &day);
-    
-    String msg = "";
-    msg.concat(day);
-    msg.concat("/");
-    msg.concat(month);
-    msg.concat("/");
-    msg.concat(year);
-    msg.concat(" ");
-    msg.concat(hour);
-    msg.concat(":");
-    msg.concat(minute);
-    msg.concat(":");
-    msg.concat(second);
-    msg.concat("\n");
-    msg.concat("A carga esta a uma temperatura elevada: ");
-    msg.concat(tempC);
-    msg.concat("\nCoordenadas:\n");
-    msg.concat("Latitude: ");
-    msg.concat(lat);
-    msg.concat("\nLongitude: ");
-    msg.concat(lon);
-  
-    const char* ssid;
-    int ssid_len = msg.length() + 1;
-    char ssid_array[ssid_len];
-    msg.toCharArray(ssid_array, ssid_len);
-  
-    Serial.println("\nEnviando mensagem...");
-    while(!sim808.sendSMS(phone,ssid_array)){}
-    Serial.println("Mensagem enviada: ");
-    Serial.println(ssid_array);
-    timer = millis();
-    enviado = true;
-  }else{
-    if(millis() > (timer + 30000)){
-      enviado = false;
-    }
-  }
-}
-
-void getGPS(){ 
-  int cont = 0;
-  while(!sim808.attachGPS()){
-    Serial.println("Aguardando GPS...");
-    delay(1000);
-  }
-  delay(3000);
-
-  Serial.println("Antena GPS conectada!");
-
-  Serial.print("Aguardando sinal de coordenadas");
-  while(!sim808.getGPS()){
-    /*Serial.print(".");
-    cont ++;
-    if(cont == 100){
-      Serial.print("\n");
-      cont = 0;
-    }*/
-  }
-  Serial.print("\n");
-
-  float la = sim808.GPSdata.lat * -1; //Movendo ao quadrante geográfico da América Latina
-  float lo = sim808.GPSdata.lon * -1; //Movendo ao quadrante geográfico da América Latina
-  float ws = sim808.GPSdata.speed_kph;
-  
-  dtostrf(la, 4, 6, lat);
-  dtostrf(lo, 4, 6, lon);
-  dtostrf(ws, 6, 2, wspeed);
-}
-
-
-void setHour(int* h, int* m, int *s, int* y, int* mo, int* d){
-    
-    if((*h) > 3){
-        *h -= 3;
-    }else{
-        *h = 24 - (3 - *h);
-        if((*d) == 1){
-            -- *mo;
-            switch((*mo)){
-                case JANEIRO:
-                case MARCO:
-                case MAIO:
-                case JULHO:
-                case AGOSTO:
-                case OUTUBRO:
-                    *d = 31;
-                    break;
-                case ABRIL:
-                case JUNHO:
-                case SETEMBRO:
-                case NOVEMBRO:
-                    *d = 30;
-                    break;
-                case FEVEREIRO:
-                    if(ehBissexto(*y)){
-                        *d = 29;
-                    }else{
-                        *d = 28;
-                    }
-                    break;
-                default:
-                    *d = 31;
-                    *mo = 12;
-                    -- *y;
-                    break;
-            }
-            
-        }else{
-            *d --;
-        }
-    }
-}
-int ehBissexto(int y){
-    if(y % 4 == 0){
-        if(y % 100 == 0){
-            if(y % 400 == 0){
-                return 1;
-            }
-            else {
-                return 0;
-            }
-        }else{
-            return 1;
-        }
-    }else{
-        return 0;
-    }
 }
 
 void readFile(File dataFile){ 
@@ -306,6 +128,77 @@ void readFile(File dataFile){
   else{ //SENÃO, FAZ
     Serial.println("Erro ao abrir o arquivo!"); //IMPRIME O TEXTO NO MONITOR SERIAL
   }
+}
+
+String generateJSON(float tempC){
+  float lat;
+  float lon;
+  float wspeed;
+
+  char lt[12];
+  char lg[12];
+  char w[12];
+
+  int h;
+  int m;
+  int s;
+  int d;
+  int mo;
+  int y;
+
+  String json = "{";
+  
+  if(connectionSIM->initSIM()){
+    connectionSIM->getGPS(&lat, &lon, &wspeed);
+    dtostrf(lat, 4, 6, lt);
+    dtostrf(lon, 4, 6, lg);
+    dtostrf(wspeed, 6, 2, w);
+    
+    connectionSIM->setHour(&h, &m, &s, &y, &mo, &d);
+
+    //timestamp: "28/9/2022 12:15:30,"
+    json.concat("timestamp: ");
+    json.concat("\"");
+    json.concat(d);
+    json.concat("/");
+    json.concat(mo);
+    json.concat("/");
+    json.concat(y);
+    json.concat(" ");
+    json.concat(h);
+    json.concat(":");
+    json.concat(m);
+    json.concat(":");
+    json.concat(s);
+    json.concat(",\"");
+
+    //lat: 14.55555,
+    json.concat("lat: ");
+    json.concat(lt);
+    json.concat(",");
+
+    //lng: 30.4444,
+    json.concat("lng: ");
+    json.concat(lg);
+    json.concat(",");
+  }else{
+    //timestamp: "28/9/2022 12:15:30,"
+    json.concat("timestamp: \"01/01/1971\"");
+
+    //lat: 14.55555,
+    json.concat("lat: 0.00000,");
+
+    //lng: 30.4444,
+    json.concat("lng: 0.00000,");
+  }
+
+  //temperature: 14.5
+  json.concat("temperature: ");
+  json.concat(tempC);
+  
+  json.concat("}");
+
+  return json;
 }
 
 boolean writeFile(String content){
