@@ -2,8 +2,8 @@
 #define CONNECTIONNETWORK_H_
  
  
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include <Thread.h>
 
 class ConnectionNetwork{

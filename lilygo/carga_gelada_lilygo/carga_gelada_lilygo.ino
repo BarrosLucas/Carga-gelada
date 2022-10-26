@@ -5,29 +5,29 @@
 #include "SDCard.h"
 
 
-void sendData(float tempC);
+//const int chipSelect = D8;
 
-const int chipSelect = D8;
+#define PIN_TX 26
+#define PIN_RX 27
 
-#define PIN_TX D4
-#define PIN_RX D3
+#define data 4
 
-#define data D2
-
-char phone[16] = "083999755768";
-char nameFile[9] = "LOG.TXT";
+char phone[16] = "043999214040";
+//char nameFile[9] = "LOG.TXT";
 
 char* ssid = "brisa-941446";
 char* pass = "vgudfwye";
 
-char* host = "http://carga-gelada-back.herokuapp.com:443/posts/measures/";
-char* h = "https://carga-gelada-test.herokuapp.com";
+char* host = "http://carga-gelada-test.herokuapp.com/musics/";
+char* h = "http://carga-gelada-test.herokuapp.com";
 const int p = 443;
 
 unsigned long timer;
 
 OneWire oneWire(data);  
 DallasTemperature sensors(&oneWire);
+
+void sendData(float tempC);
 
 ConnectionNetwork connectionNetwork;
 SDCard sdCard;
@@ -37,8 +37,8 @@ void setup(){
   Serial.begin(9600);
 
   Serial.println("*****SDCard init*****");
-  sdCard = SDCard();
-  sdCard.initCard();
+  //sdCard = SDCard();
+  //sdCard.initCard();
   
   Serial.println("\n\n*****Setting WiFi*****");
   connectionNetwork = ConnectionNetwork();
@@ -46,12 +46,13 @@ void setup(){
 
   Serial.println("\n\n*****Setting SIM Card******");
   connectionSIM = new ConnectionSIM(PIN_TX, PIN_RX);
-  
-  sensors.begin(); 
+
+  Serial.println("\n\n*****Setting Sensor*******");
+  //sensors.begin(); 
 } 
 void loop(){ 
-  sensors.requestTemperatures();
-  float tempC = sensors.getTempCByIndex(0);
+//  sensors.requestTemperatures();
+  float tempC = 35.3;
 
   Serial.print("A temperatura é: ");
   Serial.print(tempC);
@@ -63,30 +64,31 @@ void loop(){
 
 
 void sendData(float tempC){
-  char msg[200]; 
+  char msg[100]; 
   String json = generateJSON(tempC);
-  json.toCharArray(msg, 200);
+  json.toCharArray(msg, 100);
 
   const char* response;
-  int ret = connectionNetwork.sendData(msg, host, response);
+  //int ret = connectionNetwork.sendData(msg, host, response);
+  int ret = 0;
   Serial.print("Return: ");
   Serial.println(ret);
   Serial.print("Payload: ");
   Serial.println(response);
   
-  if(ret==200){
+  if(ret==201){
     Serial.println("Send data by WiFi connection!");
   }else{
-    Serial.println("Not was possible send data by WiFi connection...\nTrying send data by SMS connection");
-    connectionSIM->sendSMS(phone, msg);
+    Serial.println("Not was possible send data by WiFi connection...\nTrying send data by GPRS connection");
+    connectionSIM->sendData(h, p, msg);
   }
-  saveData(json);
+  //saveData(json);
 }
 
 void saveData(String msg){
-  Serial.println("Saving warning on SDCard");
+/*  Serial.println("Saving warning on SDCard");
   while(!sdCard.writeFile(msg, nameFile)){};
-  Serial.println("Warning saved!");
+  Serial.println("Warning saved!");*/
 }
 
 String generateJSON(float tempC){
@@ -132,44 +134,28 @@ String generateJSON(float tempC){
     json.concat("\",");
 
     //lat: 14.55555,
-    json.concat("\"latitude\": \"");
+    json.concat("\"lat\": \"");
     json.concat(lt);
     json.concat("\",");
 
     //lng: 30.4444,
-    json.concat("\"longitude\": \"");
+    json.concat("\"lng\": \"");
     json.concat(lg);
     json.concat("\",");
-
-    //lng: 30.4444,
-    json.concat("\"speed\": ");
-    json.concat(wspeed);
-    json.concat(",");
-    
   }else{
     //timestamp: "28/9/2022 12:15:30,"
     json.concat("\"timestamp\": \"01/01/1971\",");
 
     //lat: 14.55555,
-    json.concat("\"latitude\": \"0.00000\",");
+    json.concat("\"lat\": \"0.00000\",");
 
     //lng: 30.4444,
-    json.concat("\"longitude\": \"0.00000\",");
-
-    json.concat("\"speed\": 20");
+    json.concat("\"lng\": \"0.00000\",");
   }
 
   //temperature: 14.5
   json.concat("\"temperature\":");
   json.concat(tempC);
-  json.concat(",");
-
-  json.concat("\"umidity\":");
-  json.concat(30);
-  json.concat(",");
-
-  json.concat("\"order\":");
-  json.concat("\"3f5b62da-952b-41ba-a04a-aadd2f17eb06\"");
   
   json.concat("}");
 

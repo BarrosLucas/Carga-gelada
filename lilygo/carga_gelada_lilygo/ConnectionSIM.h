@@ -1,9 +1,8 @@
 #ifndef CONNECTIONSIM_H_
 #define CONNECTIONSIM_H_
 
-#include <ESP8266HTTPClient.h>
 #include <Thread.h>
-#include <DFRobot_SIM808.h>
+#include <Sim800L.h>
 #include <SoftwareSerial.h>
 
 class ConnectionSIM{
@@ -19,8 +18,7 @@ public:
   virtual ~ConnectionSIM();
 
 private: 
-  SoftwareSerial *mySerial;
-  DFRobot_SIM808 *sim808;
+  Sim800L *sim800;
 private:
 	int isLeap(int y);
 	
